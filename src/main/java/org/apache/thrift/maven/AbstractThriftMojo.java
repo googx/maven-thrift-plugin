@@ -36,21 +36,16 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.list;
-import static org.codehaus.plexus.util.FileUtils.cleanDirectory;
-import static org.codehaus.plexus.util.FileUtils.copyStreamToFile;
-import static org.codehaus.plexus.util.FileUtils.getFiles;
+import static org.codehaus.plexus.util.FileUtils.*;
 
 /**
  * Abstract Mojo implementation.
@@ -68,6 +63,17 @@ abstract class AbstractThriftMojo extends AbstractMojo {
     private static final String THRIFT_FILE_SUFFIX = ".thrift";
 
     private static final String DEFAULT_INCLUDES = "**/*" + THRIFT_FILE_SUFFIX;
+    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+
+    /**
+     * 指定该参数为True,将会跳过此插件的执行,即不进行编译Thrift生成java文件,用来在过于臃肿的thrift项目中,节约频繁的打包和发布的编译时间！
+     *
+     * @author hanxu
+     * @parameter default-value="false"
+     * @required
+     */
+    protected Boolean skipCompileThrift = false;
+
 
     /**
      * The current Maven project.
@@ -77,7 +83,6 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     protected MavenProject project;
-
     /**
      * A helper used to add resources to the project.
      *
@@ -85,7 +90,14 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     protected MavenProjectHelper projectHelper;
-
+    /**
+     * @parameter
+     */
+    protected Set<String> includes = ImmutableSet.of(DEFAULT_INCLUDES);
+    /**
+     * @parameter
+     */
+    protected Set<String> excludes = ImmutableSet.of();
     /**
      * This is the path to the {@code thrift} executable. By default it will search the {@code $PATH}.
      *
@@ -93,7 +105,6 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     private String thriftExecutable;
-
     /**
      * This string is passed to the {@code --gen} option of the {@code thrift} parameter. By default
      * it will generate Java output. The main reason for this option is to be able to add options
@@ -102,12 +113,10 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @parameter default-value="java:hashcode"
      */
     private String generator;
-
     /**
      * @parameter
      */
     private File[] additionalThriftPathElements = new File[]{};
-
     /**
      * Since {@code thrift} cannot access jars, thrift files in dependencies are extracted to this location
      * and deleted on exit. This directory is always cleaned during execution.
@@ -116,7 +125,6 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     private File temporaryThriftFileDirectory;
-
     /**
      * This is the path to the local maven {@code repository}.
      *
@@ -124,7 +132,6 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     private ArtifactRepository localRepository;
-
     /**
      * Set this to {@code false} to disable hashing of dependent jar paths.
      * <p/>
@@ -136,37 +143,41 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @required
      */
     private boolean hashDependentPaths;
-
-    /**
-     * @parameter
-     */
-    private Set<String> includes = ImmutableSet.of(DEFAULT_INCLUDES);
-
-    /**
-     * @parameter
-     */
-    private Set<String> excludes = ImmutableSet.of();
-
     /**
      * @parameter
      */
     private long staleMillis = 0;
-
     /**
      * @parameter
      */
     private boolean checkStaleness = false;
 
+    public static String toHexString(byte[] byteArray)
+    {
+        StringBuilder hexString = new StringBuilder(2 * byteArray.length);
+        for (byte b : byteArray)
+        {
+            hexString.append(HEX_CHARS[(b & 0xF0) >> 4]).append(HEX_CHARS[b & 0x0F]);
+        }
+        return hexString.toString();
+    }
+
     /**
      * Executes the mojo.
      */
+    @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         checkParameters();
-        final File thriftSourceRoot = getThriftSourceRoot();
+        if(skipCompileThrift)
+        {
+            getLog().info("由于您配置了skipCompileThrift=true参数,此次编译跳过生成Thrift文件.by hanxu");
+            return;
+        }
+        File thriftSourceRoot = getThriftSourceRoot();
         if (thriftSourceRoot.exists()) {
             try {
                 ImmutableSet<File> thriftFiles = findThriftFilesInDirectory(thriftSourceRoot);
-                final File outputDirectory = getOutputDirectory();
+                File outputDirectory = getOutputDirectory();
                 ImmutableSet<File> outputFiles = findGeneratedFilesInDirectory(getOutputDirectory());
 
                 if (thriftFiles.isEmpty()) {
@@ -175,8 +186,7 @@ abstract class AbstractThriftMojo extends AbstractMojo {
                     getLog().info("Skipping compilation because target directory newer than sources.");
                     attachFiles();
                 } else {
-                    ImmutableSet<File> derivedThriftPathElements =
-                            makeThriftPathFromJars(temporaryThriftFileDirectory, getDependencyArtifactFiles());
+                    ImmutableSet<File> derivedThriftPathElements = makeThriftPathFromJars(temporaryThriftFileDirectory, getDependencyArtifactFiles());
                     outputDirectory.mkdirs();
 
                     // Quick fix to fix issues with two mvn installs in a row (ie no clean)
@@ -189,7 +199,7 @@ abstract class AbstractThriftMojo extends AbstractMojo {
                             .addThriftPathElements(asList(additionalThriftPathElements))
                             .addThriftFiles(thriftFiles)
                             .build();
-                    final int exitStatus = thrift.compile();
+                    int exitStatus = thrift.compile();
                     if (exitStatus != 0) {
                         getLog().error("thrift failed output: " + thrift.getOutput());
                         getLog().error("thrift failed error: " + thrift.getError());
@@ -213,10 +223,9 @@ abstract class AbstractThriftMojo extends AbstractMojo {
 
     ImmutableSet<File> findGeneratedFilesInDirectory(File directory) throws IOException {
         if (directory == null || !directory.isDirectory())
-            return ImmutableSet.of();
+        {return ImmutableSet.of();}
 
         // TODO(gak): plexus-utils needs generics
-        @SuppressWarnings("unchecked")
         List<File> javaFilesInDirectory = getFiles(directory, "**/*.java", null);
         return ImmutableSet.copyOf(javaFilesInDirectory);
     }
@@ -225,7 +234,7 @@ abstract class AbstractThriftMojo extends AbstractMojo {
         long result = 0;
         for (File file : files) {
             if (file.lastModified() > result)
-                result = file.lastModified();
+            {result = file.lastModified();}
         }
         return result;
     }
@@ -235,12 +244,12 @@ abstract class AbstractThriftMojo extends AbstractMojo {
         checkNotNull(projectHelper, "projectHelper");
         checkNotNull(thriftExecutable, "thriftExecutable");
         checkNotNull(generator, "generator");
-        final File thriftSourceRoot = getThriftSourceRoot();
+        File thriftSourceRoot = getThriftSourceRoot();
         checkNotNull(thriftSourceRoot);
         checkArgument(!thriftSourceRoot.isFile(), "thriftSourceRoot is a file, not a diretory");
         checkNotNull(temporaryThriftFileDirectory, "temporaryThriftFileDirectory");
         checkState(!temporaryThriftFileDirectory.isFile(), "temporaryThriftFileDirectory is a file, not a directory");
-        final File outputDirectory = getOutputDirectory();
+        File outputDirectory = getOutputDirectory();
         checkNotNull(outputDirectory);
         checkState(!outputDirectory.isFile(), "the outputDirectory is a file, not a directory");
     }
@@ -292,11 +301,9 @@ abstract class AbstractThriftMojo extends AbstractMojo {
                             "%s was not a readable artifact", classpathElementFile));
                 }
                 for (JarEntry jarEntry : list(classpathJar.entries())) {
-                    final String jarEntryName = jarEntry.getName();
+                    String jarEntryName = jarEntry.getName();
                     if (jarEntry.getName().endsWith(THRIFT_FILE_SUFFIX)) {
-                        final File uncompressedCopy =
-                                new File(new File(temporaryThriftFileDirectory,
-                                        truncatePath(classpathJar.getName())), jarEntryName);
+                        File uncompressedCopy = new File(new File(temporaryThriftFileDirectory, truncatePath(classpathJar.getName())), jarEntryName);
                         uncompressedCopy.getParentFile().mkdirs();
                         copyStreamToFile(new RawInputStreamFacade(classpathJar
                                 .getInputStream(jarEntry)), uncompressedCopy);
@@ -305,6 +312,7 @@ abstract class AbstractThriftMojo extends AbstractMojo {
                 }
             } else if (classpathElementFile.isDirectory()) {
                 File[] thriftFiles = classpathElementFile.listFiles(new FilenameFilter() {
+                    @Override
                     public boolean accept(File dir, String name) {
                         return name.endsWith(THRIFT_FILE_SUFFIX);
                     }
@@ -322,10 +330,9 @@ abstract class AbstractThriftMojo extends AbstractMojo {
         checkNotNull(directory);
         checkArgument(directory.isDirectory(), "%s is not a directory", directory);
 
-        final Joiner joiner = Joiner.on(',');
+        Joiner joiner = Joiner.on(',');
 
         // TODO(gak): plexus-utils needs generics
-        @SuppressWarnings("unchecked")
         List<File> thriftFilesInDirectory = getFiles(directory, joiner.join(includes), joiner.join(excludes));
         return ImmutableSet.copyOf(thriftFilesInDirectory);
     }
@@ -345,7 +352,8 @@ abstract class AbstractThriftMojo extends AbstractMojo {
      * @param jarPath the full path of a jar file.
      * @return the truncated path relative to the local repository or root of the drive.
      */
-    String truncatePath(final String jarPath) throws MojoExecutionException {
+    String truncatePath(String jarPath) throws MojoExecutionException
+    {
 
         if (hashDependentPaths) {
             try {
@@ -374,15 +382,5 @@ abstract class AbstractThriftMojo extends AbstractMojo {
         }
 
         return path;
-    }
-
-    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
-
-    public static String toHexString(byte[] byteArray) {
-        final StringBuilder hexString = new StringBuilder(2 * byteArray.length);
-        for (final byte b : byteArray) {
-            hexString.append(HEX_CHARS[(b & 0xF0) >> 4]).append(HEX_CHARS[b & 0x0F]);
-        }
-        return hexString.toString();
     }
 }

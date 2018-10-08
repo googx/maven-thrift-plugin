@@ -19,11 +19,10 @@ package org.apache.thrift.maven;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableList;
 import org.apache.maven.artifact.Artifact;
 
 import java.io.File;
-import java.util.List;
+import java.util.*;
 
 /**
  * This mojo executes the {@code thrift} compiler for generating java sources
@@ -39,6 +38,7 @@ import java.util.List;
 
 public final class ThriftCompileMojo extends AbstractThriftMojo {
 
+
     /**
      * The source directories containing the sources to be compiled.
      *
@@ -46,7 +46,6 @@ public final class ThriftCompileMojo extends AbstractThriftMojo {
      * @required
      */
     private File thriftSourceRoot;
-
     /**
      * This is the directory into which the {@code .java} will be created.
      *
@@ -58,7 +57,6 @@ public final class ThriftCompileMojo extends AbstractThriftMojo {
     @Override
     protected List<Artifact> getDependencyArtifacts() {
         // TODO(gak): maven-project needs generics
-        @SuppressWarnings("unchecked")
         List<Artifact> compileArtifacts = project.getCompileArtifacts();
         return compileArtifacts;
     }
@@ -76,7 +74,10 @@ public final class ThriftCompileMojo extends AbstractThriftMojo {
     @Override
     protected void attachFiles() {
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
-        projectHelper.addResource(project, thriftSourceRoot.getAbsolutePath(),
-                ImmutableList.of("**/*.thrift"), ImmutableList.of());
+        //        List<String> includes = new ArrayList<String>(super.includes);
+        //        List<String> excludes = new ArrayList<String>(super.excludes);
+        //        projectHelper.addResource(project, thriftSourceRoot.getAbsolutePath(), includes, excludes);
+        //            projectHelper.addResource(project, thriftSourceRoot.getAbsolutePath(),
+        //                ImmutableList.of("**/*.thrift"), ImmutableList.of());
     }
 }

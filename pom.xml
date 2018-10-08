@@ -1,11 +1,14 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.thrift.tools</groupId>
-    <artifactId>thrift-maven-plugin</artifactId>
+    <!--<artifactId>thrift-maven-plugin</artifactId>-->
+    <!--hx940929:github源码上的插件名字和发行版不一样。暂时更改为以公开发行版为准-->
+    <artifactId>maven-thrift-plugin</artifactId>
     <packaging>maven-plugin</packaging>
     <name>Maven Thrift Plugin</name>
-    <version>0.1.13-SNAPSHOT</version>
+    <version>0.1.13-RELEASE</version>
     <description>Maven Thrift Plugin that executes the thrift code generator</description>
     <url>https://github.com/dtrott/maven-thrift-plugin</url>
 
@@ -13,41 +16,41 @@
         <maven>2.0.6</maven>
     </prerequisites>
 
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+    <!--<licenses>-->
+    <!--<license>-->
+    <!--<name>The Apache Software License, Version 2.0</name>-->
+    <!--<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>-->
+    <!--<distribution>repo</distribution>-->
+    <!--</license>-->
+    <!--</licenses>-->
 
-    <scm>
-        <url>https://github.com/dtrott/maven-thrift-plugin</url>
-        <connection>scm:git:git@github.com:dtrott/maven-thrift-plugin.git</connection>
-      <tag>HEAD</tag>
-  </scm>
+    <!--<scm>-->
+    <!--<url>https://github.com/dtrott/maven-thrift-plugin</url>-->
+    <!--<connection>scm:git:git@github.com:dtrott/maven-thrift-plugin.git</connection>-->
+    <!--<tag>HEAD</tag>-->
+    <!--</scm>-->
 
-    <developers>
-        <developer>
-            <id>drott</id>
-            <name>David Trott</name>
-            <email>github@davidtrott.com</email>
-        </developer>
-    </developers>
+    <!--<developers>-->
+    <!--<developer>-->
+    <!--<id>drott</id>-->
+    <!--<name>David Trott</name>-->
+    <!--<email>github@davidtrott.com</email>-->
+    <!--</developer>-->
+    <!--</developers>-->
 
-    <distributionManagement>
-        <downloadUrl>http://maven.davidtrott.com/repository</downloadUrl>
-        <repository>
-            <id>dtrott-public</id>
-            <name>David Trott's Public Repository</name>
-            <url>file:///repositories/maven.davidtrott.com/release</url>
-        </repository>
-        <snapshotRepository>
-            <id>dtrott-public</id>
-            <name>David Trott's Public Snapshot Repository</name>
-            <url>file:///repositories/maven.davidtrott.com/snapshot</url>
-        </snapshotRepository>
-    </distributionManagement>
+    <!--<distributionManagement>-->
+    <!--<downloadUrl>http://maven.davidtrott.com/repository</downloadUrl>-->
+    <!--<repository>-->
+    <!--<id>dtrott-public</id>-->
+    <!--<name>David Trott's Public Repository</name>-->
+    <!--<url>file:///repositories/maven.davidtrott.com/release</url>-->
+    <!--</repository>-->
+    <!--<snapshotRepository>-->
+    <!--<id>dtrott-public</id>-->
+    <!--<name>David Trott's Public Snapshot Repository</name>-->
+    <!--<url>file:///repositories/maven.davidtrott.com/snapshot</url>-->
+    <!--</snapshotRepository>-->
+    <!--</distributionManagement>-->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -63,6 +66,19 @@
                     <source>1.6</source>
                     <target>1.6</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
 
@@ -85,7 +101,8 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.0.4</version>
+            <!--<version>3.0.4</version>-->
+            <version>3.3.9</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
