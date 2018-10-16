@@ -130,4 +130,22 @@
             <version>1.5.8</version>
         </dependency>
     </dependencies>
+
+<!-- 项目部署 ,id要和maven-setting文件的server节点的id一致 -->
+    <distributionManagement>
+
+
+        <repository>
+            <id>nexus3-maven-public-release</id>
+            <name>thriftDemo-release</name>
+            <url>http://nexus.gfyt.lan/repository/gfytReleaseRepo</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus3-maven-public-snapshot</id>
+            <name>thriftDemo-snapshot</name>
+            <url>http://nexus.gfyt.lan/repository/gfytDevRepo</url>
+        </snapshotRepository>
+
+    </distributionManagement>
+
 </project>

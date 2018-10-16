@@ -91,7 +91,8 @@ final class Thrift {
             cl.setExecutable(executable);
             cl.addArguments(buildThriftCommand(thriftFile).toArray(new String[]{}));
             final int result = CommandLineUtils.executeCommandLine(cl, null, output, error);
-
+            String logformat = String.format("thrift编译文件[%s],退出状态码:[%d]", thriftFile.getName(), result);
+            System.out.println(logformat);
             if (result != 0) {
                 return result;
             }
